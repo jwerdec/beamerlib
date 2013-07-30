@@ -424,7 +424,7 @@ def IntegrateScopeTrace(fileprefix, filenumbers):
 # TESTCODE
         
 if __name__ == '__main__':
-    from tagging_analysis import SurfacePosMeas
+    from tof_analysis import SurfacePosMeas
     angles = linspace(-45, 45, 17) 
     signal = -cos(radians(angles+8))**12
     print signal

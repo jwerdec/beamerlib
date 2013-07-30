@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Requirements:
     Python v2.7 or later (not compatible with Python 3)
@@ -45,12 +44,6 @@ from mpl_toolkits.axisartist.grid_finder import MaxNLocator
 from numpy import pi
 
 def SemiPolarPlot(fig):
-    import  mpl_toolkits.axisartist.angle_helper as angle_helper
-    from matplotlib.projections import PolarAxes
-    from matplotlib.transforms import Affine2D
-    from mpl_toolkits.axisartist import SubplotHost
-    from mpl_toolkits.axisartist import GridHelperCurveLinear
-    from mpl_toolkits.axisartist.grid_finder import MaxNLocator, FixedLocator
     # see demo_curvelinear_grid.py for details
     tr = Affine2D().scale(pi/180., 1.) + PolarAxes.PolarTransform()
     extreme_finder = angle_helper.ExtremeFinderCycle(20, 20,
