@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Requirements:
     Python v2.7 or later (not compatible with Python 3)
