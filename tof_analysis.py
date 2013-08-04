@@ -26,82 +26,10 @@ import scipy.constants as const
 from scipy.special import erfc
 from scipy.integrate import quad
 from scipy.optimize import leastsq
-from multiprocessing import Process, Queue, JoinableQueue, freeze_support
-
-def extract_from_Table(Table, limits=(),  col=0):
-    """
-    Returns a new 2d array with only those rows from the input table whos
-    value in column col are within the specified limits or equal to them.
-    The ordering is preserved.
-    """
-    if limits==():
-        return Table
-    low = limits[0]
-    high = limits[1]
-    idxlower = set(np.where(Table[col]<=high)[0])
-    idxhigher = set(np.where(Table[col]>=low)[0])
-    idx = idxhigher.intersection(idxlower)
-    return Table[:, list(idx)]
-
-def extract_from_Array(array, limits=()):
-    """
-    Returns a new 1d array with only those rows from the input array whos
-    value are within the specified limits or equal to them.
-    The ordering is preserved.
-    """
-    if limits==():
-        return array
-    low = limits[0]
-    high = limits[1]
-    idxlower = set(np.where(array<=high)[0])
-    idxhigher = set(np.where(array>=low)[0])
-    idx = idxhigher.intersection(idxlower)
-    return array[list(idx)]
+from helper import extract_from_Table
 
 def Normalize(x):
     return x/np.ma.max(x)
-
-def Moments_multiproc(functions, n, num_cpu, limits=(0, np.inf)):
-    """
-    EXPERIMENTAL
-    """
-    def worker(in_q, out_q):
-        while True:
-            indict = in_q.get()
-            if indict is None:
-                in_q.task_done()
-                break
-            func = lambda x: functions[indict['funcnum']](x) * x**indict['n']
-            indict['moment'] = quad(func, limits[0], limits[1])
-            out_q.put(indict)
-            in_q.task_done()
-        return
-
-    q_in = JoinableQueue()
-    q_out = Queue()    
-    try:
-        iterator = iter(n)
-    except TypeError:
-        n = [n]
-    for funcnum in range(len(functions)):
-        for i in n:
-            q_in.put({'funcnum': funcnum, 'n': n, 'moment':None})
-    for i in range(num_cpu):
-        Process(target=worker, args=(q_in, q_out)).start()
-    for i in range(num_cpu):
-        q_in.put(None)
-    q_in.join()
-    out = [q_out.get() for _ in range(len(functions)*len(n))]
-    result = [{} for func in functions]
-    i = 0
-    for func in functions:
-        for i in n:
-            result[i][n] = (item['moment'] for item in out
-                            if (item['func']==func) and
-                            (n==item['n'])).next()
-            i += 1
-    return result
-    
 
 def Moments(func, n, limits=(0, np.inf), args={}):
     """
@@ -160,7 +88,7 @@ class SurfacePosMeas(object):
         x = linspace(self.__xlim[0], self.__xlim[1], 100)
         fig, axes = plt.subplots(figsize=(8,5), dpi=100)
         axes.set_title(r'IR Power vs. Surface Position')
-        axes.plot(self.Y, self.Irel, 'o', color='none')
+        axes.plot(self.Y, self.Irel, 'o', color='w')
         axes.plot(x, fit(x), 'b-',
                   label=(r'$\mathrm{erfc}[ %.2f \cdot \left(Y_\mathrm{S} - %.2f \right)]$') % (self.__a, self.__Y0)
                   )

@@ -14,7 +14,7 @@ Version History:
 
 from __future__ import division 
 from lmfit import *
-from beamer_helper import SemiPolarPlot
+from helper import SemiPolarPlot
 from numpy import arange, cos, radians, max, min, array, linspace
 from sys import stderr
 
@@ -393,7 +393,7 @@ class iScope(QMainWindow):
         
 from PyQt4.QtGui import QApplication
 from numpy import loadtxt
-from beamer_helper import construct_filename
+from helper import construct_filename
 
 def IntegrateScopeTrace(fileprefix, filenumbers):
     intensities = []
