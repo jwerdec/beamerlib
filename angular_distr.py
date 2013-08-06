@@ -20,7 +20,7 @@ from sys import stderr
 
 class AngularDistribution(object):
     def __init__(self, REMPISetups, Integrals, fit=True, plot=True,
-		 Normalized=True):
+		 Normalized=True, exclude=[]):
 	if len(REMPISetups) != len(Integrals):
 	    stderr.write('Error: Dimensions of Setups and ' + 
 			     'Integrals do not match!')
@@ -32,10 +32,7 @@ class AngularDistribution(object):
 	self.__excluded = []
 	self.__NormIntegrals = self.__norm(Integrals)
 	if fit:
-	    self.__fit = lmfit(self.testfunc, self.__Angles,
-			       self.__NormIntegrals,
-			       p0={'A':1, 'theta0': 3, 'm': 3}, 
-			       verbose=False, plot=False)
+	    self.fit(verbose=False, plot=False, exclude=exclude)
 	if plot:
 	    self.plot()
 
@@ -68,17 +65,18 @@ class AngularDistribution(object):
 	fig = plt.figure(1, figsize=(8, 8))
 	fig.clf()
 	ax1, polar_ax = SemiPolarPlot(fig)
-	polar_ax.plot(self.__Angles, y, 'bo',
+        exclude = self.__excluded
+        idx = list(set(range(len(y))).difference(set(exclude)))
+	polar_ax.plot(self.__Angles[idx], y[idx], 'bo',
 		      label=r'$\mathrm{Experimental\ Data}$')
 	theta = linspace(-90, 90, 100)
 	label = r'$%1.2f\ \cos^{%2.1f}(\theta-%1.2f^\circ)$' %\
 	    (self.Fit.P['A'], self.Fit.P['m'], self.Fit.P['theta0'])
-	polar_ax.plot(theta, self.Fit(theta), 'b-', label=label)
-	label = r'$\cos(\theta)$' 
-	polar_ax.plot(theta, cos(radians(theta)), 'k--', label=label)
+        polar_ax.plot(theta, self.Fit(theta), 'b-', label=label)
+        label = r'$\cos(\theta - %.2f)$' % self.Fit.P['theta0'] 
+        polar_ax.plot(theta, cos(radians(theta-self.Fit.P['theta0'])),
+                          'k--', label=label)
 	if len(self.__excluded) > 0:
-	    print self.__excluded
-	    print self.__Angles[self.__excluded]
 	    polar_ax.plot(self.__Angles[self.__excluded],
 			  y[self.__excluded], 'ro',
 			  label=r'$\mathrm{Excluded\ Data\ Points}$')
