@@ -31,31 +31,32 @@ class AngularDistribution(object):
 	self.__Integrals = array(Integrals)
 	self.__excluded = []
 	self.__NormIntegrals = self.__norm(Integrals)
+	self.__fit = None
 	if fit:
 	    self.fit(verbose=False, plot=False, exclude=exclude)
 	if plot:
 	    self.plot()
 
     def testfunc(self, theta, A, m, theta0):
-	    return A * cos(radians(theta-theta0))**m
+        return A * cos(radians(theta-theta0))**m
 
     def fit(self, func=None, p0={'A':1, 'theta0': 3, 'm': 3}, verbose=True, 
 	    plot=False, exclude=[], Normalized=True):
-	    self.__Normalized = Normalized
-	    self.__excluded = exclude
-	    if func == None:
-		func = self.testfunc
-	    if Normalized:
-		Integrals = self.__NormIntegrals
-	    else:
-		Integrals = self.__Integrals
-	    ex = set(exclude)
-	    idx = set(range(len(Integrals)))
-	    idx = list(idx.difference(ex))
-	    Integrals = Integrals[idx]
-	    Angles = self.__Angles[idx]
-	    self.__fit = lmfit(func, Angles, Integrals, p0, verbose=verbose, 
-			       plot=plot)
+        self.__Normalized = Normalized
+        self.__excluded = exclude
+        if func == None:
+            func = self.testfunc
+        if Normalized:
+            Integrals = self.__NormIntegrals
+        else:
+            Integrals = self.__Integrals
+        ex = set(exclude)
+        idx = set(range(len(Integrals)))
+        idx = list(idx.difference(ex))
+        Integrals = Integrals[idx]
+        Angles = self.__Angles[idx]
+        self.__fit = lmfit(func, Angles, Integrals, p0, verbose=verbose, 
+                           plot=plot)
 
     def plot(self):
 	if self.__Normalized:
@@ -69,12 +70,13 @@ class AngularDistribution(object):
         idx = list(set(range(len(y))).difference(set(exclude)))
 	polar_ax.plot(self.__Angles[idx], y[idx], 'bo',
 		      label=r'$\mathrm{Experimental\ Data}$')
-	theta = linspace(-90, 90, 100)
-	label = r'$%1.2f\ \cos^{%2.1f}(\theta-%1.2f^\circ)$' %\
-	    (self.Fit.P['A'], self.Fit.P['m'], self.Fit.P['theta0'])
-        polar_ax.plot(theta, self.Fit(theta), 'b-', label=label)
-        label = r'$\cos(\theta - %.2f)$' % self.Fit.P['theta0'] 
-        polar_ax.plot(theta, cos(radians(theta-self.Fit.P['theta0'])),
+	theta = linspace(-90, 90, 300)
+        if self.__fit is not None:
+            label = r'$%1.2f\ \cos^{%2.1f}(\theta-%1.2f^\circ)$' %\
+                (self.Fit.P['A'], self.Fit.P['m'], self.Fit.P['theta0'])
+            polar_ax.plot(theta, self.Fit(theta), 'b-', label=label)
+            label = r'$\cos(\theta - %.2f)$' % self.Fit.P['theta0'] 
+            polar_ax.plot(theta, cos(radians(theta-self.Fit.P['theta0'])),
                           'k--', label=label)
 	if len(self.__excluded) > 0:
 	    polar_ax.plot(self.__Angles[self.__excluded],
@@ -89,7 +91,7 @@ class AngularDistribution(object):
 	plt.show(fig)
 
     def __norm(self, x):
-	    return x/min(x)
+	    return x/max(x)
 
     @property
     def Angles(self):
@@ -339,21 +341,19 @@ class iScopeWidget(QWidget):
         self.coeff = polyfit(x, y, degree)
         
         left, right = self.intrange.get_range()
-        bg = quad(lambda x: polyval(self.coeff, x), left, right)[0]
+        #bg = abs(quad(lambda x: polyval(self.coeff, x), left, right)[0])
         idxlower = set(where(table[0]<=right)[0])
         idxhigher = set(where(table[0]>=left)[0])
         idx = list(idxhigher.intersection(idxlower))
         x, y = table[:, idx]
-        sig = trapz(y, x)
-        self.int = sig-bg
+        self.int = abs(trapz(y-polyval(self.coeff, x), x=x))
         
         self.update_label()
         self.update_curve()
         
     def update_label(self):
-        self.label1.set_text(u'trapz(red) - int(blue) = %e' % self.int)
-    
-        
+        self.label1.set_text(u"""trapz(red) - int(blue) = %e""" % self.int)
+            
     def update_curve(self):
         #---Update curve
         self.curve_item.set_data(self.x, self.y)
@@ -403,15 +403,15 @@ def IntegrateScopeTrace(fileprefix, filenumbers):
         if not app:
             app = QApplication([])
         win = iScope()
-        win.add_plot(x, y)
+        win.add_plot(x*1e6, y)
         #---Setup window
         win.setup_window()
         win.resize(800,600)
         #---
         win.show()
-        intensities.append(win.centralWidget().layout().itemAt(0).widget().int)
         try:
             app.exec_()
+            intensities.append(win.centralWidget().layout().itemAt(0).widget().int)
         except:
             pass
     
