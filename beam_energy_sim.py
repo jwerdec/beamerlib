@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Requirements:
     Python v2.7 or later (not compatible with Python 3)
@@ -50,11 +49,15 @@ def BeamEnergiesPlot(T, Gas, Carriers=[H2, He, Ne]):
     x = np.linspace(0, 1, 500)
     for carrier in Carriers:
         axes.plot(x, SeededBeam(T, Gas, carrier)(x), linewidth=2,
-                  label=r'%s in %s' % (Gas.Name, carrier.Name))
-    axes.set_title(r'Kinetic energy of %s seeded in various gases at %d K' %\
-                       (Gas.Name, T))
+                  label=r'$E_\mathrm{kin}$ of %s in %s' % (Gas.Name, carrier.Name))
+    axes.set_title(r'Kinetic energy of a %s molecular beam seeded in various gases at %d K' % (Gas.Name, T))
     axes.set_xlabel(r'$x$(%s)' % Gas.Name)
-    axes.set_ylabel(r'$E_\mathrm{kin} \, / \, \mathrm{eV}$')
+    axes.set_ylabel(r'$E_\mathrm{kin} \, / \, \mathrm{eV}$ (solid line)')
+    ax2 = axes.twinx()
+    for carrier in Carriers:
+        ax2.plot(x, SeededBeam(T, Gas, carrier).calc_v(x), linewidth=2,
+                 ls='-.', label=r'$v$ of %s in %s' % (Gas.Name, carrier.Name))
+    ax2.set_ylabel(r'$v\ / \ \mathrm{m} \ \mathrm{s}^{-1}$ (dashed dotted line)')
     axes.set_xlim((0,.5))
     axes.xaxis.set_major_locator(mpl.ticker.MultipleLocator(0.05))
     axes.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.01))
@@ -80,9 +83,9 @@ class SeededBeam(object):
         CpCarrier = self.__Carrier.Cp*const.R
         M = self.__Gas.Mass
         MCarrier = self.__Carrier.Mass
-        v2 = 2*T*(x*Cp + (1-x)*CpCarrier)/((1-x)*MCarrier + x*M)
+        v2 = 2*T*(x*Cp + (1-x)*CpCarrier)/((1-x)*MCarrier + x*M)*1000
         v = np.sqrt(v2)
-        Ekin = 0.5*M/const.Avogadro/const.eV*v2
+        Ekin = 0.5*M/const.Avogadro/const.eV*v2/1000
         return v, Ekin
     
     def calc_Ekin(self, x):
