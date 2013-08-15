@@ -205,10 +205,10 @@ Distances (mm): %s
     # PRIVATE ATTRIBUTES
             
     def __plotbasic(self):
-        _xlim = (10,-6)
-        _ylim = (-4,5)
-        _xticks = range(_xlim[0], _xlim[1], -1)
-        _yticks = range(_ylim[0], _ylim[1], 1)
+        _xlim = (11,-12)
+        _ylim = (-6,7)
+        _xticks = range(_xlim[0], _xlim[1], -2)
+        _yticks = range(_ylim[0], _ylim[1], 2)
         
         fig = plt.figure(figsize=(12,5), dpi=100)
         grdspc = gs.GridSpec(1, 2, width_ratios=[2,1])
@@ -391,9 +391,10 @@ class TOFSpectrum(object):
     ...
     """
     # CONSTRUCTOR
-    def __init__(self, Setup, filename, IRDelay,\
-                     mode='Flux_vs_TOF', mass=28, func=None,\
-                     verbose=False, plot=False, fit=True, baseavg=20):
+    def __init__(self, Setup, filename, IRDelay=None,
+                 mode='Flux_vs_TOF', mass=28, func=None,
+                 verbose=False, plot=False, fit=True, baseavg=20,
+                 Normalize=True):
         """
         ...
         """
@@ -403,6 +404,7 @@ class TOFSpectrum(object):
         self.__setup = Setup
         self.__l = Setup.FlightLength
         self.__offset = 400
+        self.__Normalize = Normalize
         self.__baseavg = baseavg
         self.__RawData = RawTOFData(filename)
         self.__data = self.__prepare_data(self.__RawData)
@@ -417,10 +419,15 @@ class TOFSpectrum(object):
         # Create a new array with the corrected TOF in the first column
         # and the baseline corrected Signal in the second column. Then
         # sort that array according to TOF   
-        Working = self.__sort(np.transpose(np.array([
+        if self.__IRDelay != None:
+            Working = self.__sort(np.transpose(np.array([
                         RawData.TOF/1000 - self.__IRDelay + self.__offset,
                         RawData.Baseline - RawData.Signal
                         ])))
+        else:
+            Working = self.__sort(np.transpose(np.array([
+                            RawData.TOF/1000,
+                            RawData.Baseline - RawData.Signal])))
         # Check if there are negative TOF values and kick those out 
         neg_TOF_idx = np.where(Working[0] <= 0) #get indices where TOF<=0
         if (len(neg_TOF_idx[0]) > 0):
@@ -448,7 +455,10 @@ class TOFSpectrum(object):
     def __DensityFlux(self, SIG, v):
         Density = self.__subtract_baseline(SIG, self.__baseavg)
         Flux = Density*v
-        return Normalize(Density), Normalize(Flux)
+        if self.__Normalize:
+            return Normalize(Density), Normalize(Flux)
+        else:
+            return Density, Flux
     
     def __FluxTOFfit(self, x, F0, alpha, x0):
         return F0 * (self.__l/x)**4 * exp(- (self.__l/alpha)**2 *
@@ -543,26 +553,35 @@ class TOFSpectrum(object):
         return self.__fitargs['func']
         
     def set_mode(self, mode):
-        pltset = {\
-           'xlabel': r'$\mathrm{Time\ of\ Flight\, /\, \mu s }$',\
-           'ylabel': r'$\mathrm{Normalized\ Flux}$',\
-               }
+        pltset = {
+            'xlabel': r'$\mathrm{Time\ of\ Flight\, /\, \mu s }$',
+            'ylabel': r'',
+            }
+        if self.__Normalize:
+            pltset['ylabel'] = r'$\mathrm{Normalized}$'
         if mode == 'Flux_vs_TOF':
             self.__fitargs = {'func': self.__FluxTOFfit, 'xdata': self.__TOF,\
                            'ydata': self.__Flux}
+            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
         elif mode == 'Flux_vs_v':
             self.__fitargs = {'func': self.__FluxVfit, 'xdata': self.__v,\
                            'ydata': self.__Flux}
+            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
             pltset['xlabel'] = r'$v \, / \, \mathrm{m}\, \mathrm{s}^{-1}$'
         elif mode == 'Flux_vs_E':
             self.__fitargs = {'func': self.__FluxEfit, 'xdata': self.__E,\
                            'ydata': self.__Flux}
+            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
             pltset['xlabel'] = r'$E \, / \, \mathrm{eV}$'
         elif mode == 'Density_vs_v':
             self.__fitargs = {'func': self.__DensityVfit, 'xdata': self.__v,\
                            'ydata': self.__Density}
             pltset['xlabel'] = r'$v \, / \, \mathrm{m}\, \mathrm{s}^{-1}$'
-            pltset['ylabel'] = r'$\mathrm{Normalized\ Density}$'
+            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Density}$'
+        elif mode == 'Density_vs_TOF':
+            self.__fitargs = {'func': self.__DensityVfit, 'xdata': self.__TOF,\
+                           'ydata': self.__Density}
+            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Density}$'
         else:
             raise Exception('Error: Mode %s unknown!' % mode)
             return None
