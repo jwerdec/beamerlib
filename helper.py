@@ -13,6 +13,27 @@ Version History:
 """
 
 import numpy as np
+from scipy.integrate import quad
+
+def Moments(func, n, limits=(0, np.inf), args={}):
+    """
+    Calculate the nth moment around 0 of a function func.
+    Parameter args={} can be used to pass additional arguments to the function
+    limits: tuple of limits of integration (default=(0, infinity))
+    """
+    if args=={}:
+        _func = lambda x: func(x)
+    else:
+        _func = lambda x: func(x, **args)
+    if type(n) == type([]):
+        result = [i for i in n]
+        for i in n:
+            function = lambda x: _func(x)*x**i
+            result[i] = quad(function, limits[0], limits[1])
+    else: 
+        function = lambda x: _func(x)*x**n
+        result = quad(function, limits[0], limits[1])
+    return result
 
 def extract_from_Table(Table, limits=(),  col=0):
     """

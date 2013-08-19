@@ -27,29 +27,7 @@ from scipy.special import erfc
 from scipy.integrate import quad
 from scipy.optimize import leastsq
 from helper import extract_from_Table
-
-def Normalize(x):
-    return x/np.ma.max(x)
-
-def Moments(func, n, limits=(0, np.inf), args={}):
-    """
-    Calculate the nth moment around 0 of a function func.
-    Parameter args={} can be used to pass additional arguments to the function
-    limits: tuple of limits of integration (default=(0, infinity))
-    """
-    if args=={}:
-        _func = lambda x: func(x)
-    else:
-        _func = lambda x: func(x, **args)
-    if type(n) == type([]):
-        result = [i for i in n]
-        for i in n:
-            function = lambda x: _func(x)*x**i
-            result[i] = quad(function, limits[0], limits[1])
-    else: 
-        function = lambda x: _func(x)*x**n
-        result = quad(function, limits[0], limits[1])
-    return result
+from helper import Moments
 
 class SurfacePosMeas(object):
     
@@ -456,7 +434,7 @@ class TOFSpectrum(object):
         Density = self.__subtract_baseline(SIG, self.__baseavg)
         Flux = Density*v
         if self.__Normalize:
-            return Normalize(Density), Normalize(Flux)
+            return Density/Density.max(), Flux/Flux.max()
         else:
             return Density, Flux
     
