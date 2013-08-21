@@ -15,6 +15,15 @@ Version History:
 import numpy as np
 from scipy.integrate import quad
 
+def normalize(x, numpoints=10):
+    return x/x[x.argsort()[-numpoints:]].mean()
+
+def subtract_baseline(x, left=20):
+    return x - x[:left].mean()
+
+def sort_table(table, col=0):
+    return table[:, table[col, :].argsort()]
+
 def Moments(func, n, limits=(0, np.inf), args={}):
     """
     Calculate the nth moment around 0 of a function func.

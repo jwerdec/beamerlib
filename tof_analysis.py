@@ -28,6 +28,7 @@ from scipy.integrate import quad
 from scipy.optimize import leastsq
 from helper import extract_from_Table
 from helper import Moments
+import helper
 
 class SurfacePosMeas(object):
     
@@ -363,6 +364,53 @@ class RawTOFData(object):
             plot(self[0], self[i], '-', label='Column %d' % (i+1))
         axes.legend(loc='best')
         plt.show(fig)
+
+class RempiTOA(object):
+    """
+    ...
+    """
+    def __init__(self, filename, numbasecorr=20, Normalize=True, plot=True):
+        self.__filename = filename
+        self.__numbasecorr = numbasecorr
+        RawData = RawTOFData(filename)
+        self.__RawData = RawData
+        idx = RawData.TOF.argsort()
+        self.__TOF = RawData.TOF[idx]/1000
+        Signal = (RawData.Baseline - RawData.Signal)[idx]
+        self.__Signal = helper.subtract_baseline(Signal, left=self.__numbasecorr)
+        if Normalize:
+            self.__Signal = helper.normalize(self.__Signal)
+            self.__ylabel = r'$\mathrm{Normalized\ REMPI\ Signal}$'
+        else: 
+            self.__ylabel = r'$\mathrm{REMPI\ Signal}$'
+        if plot:
+            self.plot()
+    
+    def plot(self):
+        fig, axes = plt.subplots(figsize=(8,5), dpi=100)
+        axes.set_title(r'$\mathrm{%s}$' % self.__filename)
+        axes.plot(self.__TOF, self.__Signal, 'bo')
+        axes.set_ylabel(self.__ylabel)
+        axes.set_xlim((self.__TOF[0], self.__TOF[-1]))
+        axes.set_xlabel(r'$\mathrm{Time\ of\ Arrival\ /\ \mu s}$')
+        self.fig = fig
+        self.axes = axes
+        self.savefig = self.fig.savefig
+        plt.show(fig)
+        
+    # PUBLIC ATTRIBUTES   
+
+    @property
+    def RawData(self):
+        return self.__RawData
+
+    @property
+    def TOF(self):
+        return self.__TOF
+
+    @property
+    def Setup(self):
+        return self.__setup
 
 class TOFSpectrum(object):
     """
@@ -731,4 +779,6 @@ if __name__ == '__main__':
     Positions={'IR': (7,0), 'REMPI': 0, 'Center ZRM': 5.1,
                'ZRM': 3.5, 'Surface Y': 33.8}
     testsetup2 = TaggingSetup(Positions, SurfacePosMeas=test, visualize=True)
-    Rawtest = RawTOFData('testdata/0406003.dat')
+
+    # Rempi TOA
+    TestTOA = RempiTOA('testdata/1208005.dat')
