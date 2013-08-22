@@ -26,8 +26,6 @@ import scipy.constants as const
 from scipy.special import erfc
 from scipy.integrate import quad
 from scipy.optimize import leastsq
-from helper import extract_from_Table
-from helper import Moments
 import helper
 
 class SurfacePosMeas(object):
@@ -412,14 +410,14 @@ class RempiTOA(object):
     def Setup(self):
         return self.__setup
 
-class TOFSpectrum(object):
+class TaggingTOF(object):
     """
     ...
     """
     # CONSTRUCTOR
-    def __init__(self, Setup, filename, IRDelay=None,
-                 mode='Flux_vs_TOF', mass=28, func=None,
-                 verbose=False, plot=False, fit=True, baseavg=20,
+    def __init__(self, Setup, filename, IRDelay,
+                 mode='Flux_vs_TOF', mass=28, 
+                 verbose=False, plot=True, fit=True, numbasecorr=20,
                  Normalize=True):
         """
         ...
@@ -431,61 +429,47 @@ class TOFSpectrum(object):
         self.__l = Setup.FlightLength
         self.__offset = 400
         self.__Normalize = Normalize
-        self.__baseavg = baseavg
+        self.__numbasecorr = numbasecorr
         self.__RawData = RawTOFData(filename)
-        self.__data = self.__prepare_data(self.__RawData)
-        self.__mode = self.set_mode(mode)
-        self.__fit = None
+        TOF, Signal = self.__treat_data(self.__RawData)
+        v, E = self.__invert(TOF)
+        Flux = self.__density_to_flux(Signal, v)
+        if Normalize:
+            Flux = [helper.normalize(flux, 5) for flux in Flux]
+        self.__TOF = (TOF, Flux[0])
+        self.__v = (v, Flux[1])
+        self.__E = (E, Flux[2])
+        self.set_mode(mode)
+        self.__moments = None
         if fit:
-            self.fit(func=func, verbose=verbose, plot=plot)
+            self.fit(verbose=verbose)
+        if plot:
+            self.plot()
 
     # PRIVATE ATTRIBUTES    
 
-    def __prepare_data(self, RawData):        
-        # Create a new array with the corrected TOF in the first column
-        # and the baseline corrected Signal in the second column. Then
-        # sort that array according to TOF   
-        if self.__IRDelay != None:
-            Working = self.__sort(np.transpose(np.array([
-                        RawData.TOF/1000 - self.__IRDelay + self.__offset,
-                        RawData.Baseline - RawData.Signal
-                        ])))
-        else:
-            Working = self.__sort(np.transpose(np.array([
-                            RawData.TOF/1000,
-                            RawData.Baseline - RawData.Signal])))
-        # Check if there are negative TOF values and kick those out 
-        neg_TOF_idx = np.where(Working[0] <= 0) #get indices where TOF<=0
-        if (len(neg_TOF_idx[0]) > 0):
-            firstpositive = neg_TOF_idx[0][-1:][0] + 1 #get index of first TOF>0
-            Working = Working[:, firstpositive:] #crop the working array
-            print 'Warning: Omitting the first %d datapoints because TOF <= 0!'\
-                % firstpositive
-        # Invert the Data     
-        self.__TOF = Working[0]
-        self.__v, self.__E = self.__invert(self.__TOF)
-        self.__Density, self.__Flux = self.__DensityFlux(Working[1], self.__v)
-        return Working
-
-    def __sort(self, datatable):
-        return np.transpose(datatable[datatable[:,0].argsort()])
+    def __treat_data(self, RawData):     
+        idx = RawData.TOF.argsort()
+        TOF = RawData.TOF[idx]/1000 -self.__IRDelay + self.__offset
+        Signal = (RawData.Baseline - RawData.Signal)[idx]
+        Signal = helper.subtract_baseline(Signal, left=self.__numbasecorr)
+        idx, = np.where(TOF > 0)
+        numomitt = len(TOF) - len(idx)
+        if numomitt > 0:
+            print 'Warning: Omitting the first %d datapoints because TOF <= 0!' % numomitt
+        return TOF[idx], Signal[idx]
 
     def __invert(self, TOF):
         v = self.__l*1000 / TOF
         E = 0.5 * self.__mass * v**2 * const.u/const.eV 
         return v, E
         
-    def __subtract_baseline(self, SIG, left=20):
-        return SIG - np.sum(SIG[:left])/(left)
+    def __density_to_flux(self, Signal, v):
+        TOFFlux = Signal*v
+        vFlux = Signal*self.__l/v
+        EFlux = vFlux/(v*self.__mass)
+        return TOFFlux, vFlux, EFlux
         
-    def __DensityFlux(self, SIG, v):
-        Density = self.__subtract_baseline(SIG, self.__baseavg)
-        Flux = Density*v
-        if self.__Normalize:
-            return Density/Density.max(), Flux/Flux.max()
-        else:
-            return Density, Flux
-    
     def __FluxTOFfit(self, x, F0, alpha, x0):
         return F0 * (self.__l/x)**4 * exp(- (self.__l/alpha)**2 *
                                             (1/x - 1/x0)**2)
@@ -500,20 +484,29 @@ class TOFSpectrum(object):
     def __DensityVfit(self, x, F0, alpha, x0):
         return F0 * x**2 * exp(- ((x-x0)/alpha)**2)
     
+    def __estimate_p0(self, x, y):
+        maxpos = np.where(y == y.max())[0][0]
+        x0 = x[maxpos]
+        F0 = y[maxpos]
+        i = maxpos
+        while y[i] > F0/2:
+            i += 1
+        right = i
+        i = maxpos
+        while y[i] > F0/2:
+            i -= 1
+        left = i
+        alpha = x[right] - x[left]
+        return {'F0':F0, 'x0':x0, 'alpha':alpha}
+        
+    def __get_moments(self):
+        if self.__moments == None:
+            zeroth, first, second = helper.Moments(self.__fit, n=[0,1,2], limits=(0, np.inf))
+            self.__moments = ([zeroth[0], first[0], second[0]], first[0]/zeroth[0], second[0]/zeroth[0])
+        return self.__moments
+    
     def __call__(self, x):
         return self.__fit(x)
-
-    def __func_moments(self, func):
-        func_0th = lambda x: func(x)
-        func_1st = lambda x: func(x)*x
-        func_2nd = lambda x: func(x)*x**2
-        zeroth = quad(func_0th, 0, np.inf)
-        first = quad(func_1st, 0, np.inf)
-        second = quad(func_2nd, 0, np.inf)
-        moments = [zeroth, first, second]
-        mean = first[0]/zeroth[0]
-        ms = second[0]/zeroth[0]
-        return moments, mean, ms
               
     # PUBLIC ATTRIBUTES   
 
@@ -528,14 +521,6 @@ class TOFSpectrum(object):
     @property
     def TOF(self):
         return self.__TOF
-        
-    @property
-    def Density(self):
-        return self.__Density
-        
-    @property 
-    def Flux(self):
-        return self.__Flux
         
     @property 
     def v(self):
@@ -552,28 +537,18 @@ class TOFSpectrum(object):
     @property
     def Setup(self):
         return self.__setup
-
+        
+    @property
+    def Mean(self):
+        return self.__get_moments()[1]
+      
+    @property
+    def StdDev(self):
+        return self.__get_moments()[2]
+        
     @property
     def Moments(self):
-        return self.__func_moments(self.__fit)
-
-    def get_values(self, limits=()):
-        """
-        Returns 2d array with the x and y data in the current mode 
-        Limits: Tuple of x values definding a range of values that are returned
-        """
-        tab = np.array([self.__fitargs['xdata'], self.__fitargs['ydata']])
-        tab = extract_from_Table(tab, limits=limits)
-        return tab
-
-    def savetxt(self, filename, comment=True):
-        array = np.array(self.__TOF, self.__v, self.__E, self.__Density,\
-                             self.__Flux)
-        if comment:
-            headertxt = '# TOF [mu s]    v [m/s]    E [eV]    Density    Flux'
-        else:
-            header=''
-        np.savetxt(filename, array, comments=header)
+        return self.__get_moments()[0]
 
     def get_fitfunc(self):
         return self.__fitargs['func']
@@ -586,54 +561,34 @@ class TOFSpectrum(object):
         if self.__Normalize:
             pltset['ylabel'] = r'$\mathrm{Normalized}$'
         if mode == 'Flux_vs_TOF':
-            self.__fitargs = {'func': self.__FluxTOFfit, 'xdata': self.__TOF,\
-                           'ydata': self.__Flux}
+            self.__fitargs = {'func': self.__FluxTOFfit, 'data': self.__TOF}
             pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
         elif mode == 'Flux_vs_v':
-            self.__fitargs = {'func': self.__FluxVfit, 'xdata': self.__v,\
-                           'ydata': self.__Flux}
+            self.__fitargs = {'func': self.__FluxVfit, 'data': self.__v}
             pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
             pltset['xlabel'] = r'$v \, / \, \mathrm{m}\, \mathrm{s}^{-1}$'
         elif mode == 'Flux_vs_E':
-            self.__fitargs = {'func': self.__FluxEfit, 'xdata': self.__E,\
-                           'ydata': self.__Flux}
+            self.__fitargs = {'func': self.__FluxEfit, 'data': self.__E}
             pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
             pltset['xlabel'] = r'$E \, / \, \mathrm{eV}$'
-        elif mode == 'Density_vs_v':
-            self.__fitargs = {'func': self.__DensityVfit, 'xdata': self.__v,\
-                           'ydata': self.__Density}
-            pltset['xlabel'] = r'$v \, / \, \mathrm{m}\, \mathrm{s}^{-1}$'
-            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Density}$'
-        elif mode == 'Density_vs_TOF':
-            self.__fitargs = {'func': self.__DensityVfit, 'xdata': self.__TOF,\
-                           'ydata': self.__Density}
-            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Density}$'
         else:
             raise Exception('Error: Mode %s unknown!' % mode)
             return None
         self._plotsettings = pltset
-        return mode
 
     def fit(self, func=None, p0={}, verbose=False, plot=False):
-        if func != None:
-            self.__fitargs['func'] = func
-        x = self.__fitargs['xdata']
-        y = self.__fitargs['ydata']
-        x0 = x[np.where(y==np.max(y))]
-        peak = np.where(y>=0.8)[0]
-        alpha = - abs(x[peak[-1]] - x[peak[0]])
+        self.__moments = None
+        if func == None:
+            func = self.__fitargs['func']
+        x, y = self.__fitargs['data']
         if p0 == {}:
-            p0 = {'F0':1, 'alpha':alpha, 'x0':x0}
-        self.__fitargs['p0'] = p0
-        self.__fitargs['verbose'] = verbose
-        self.__fitargs['plot'] = plot
-        self.__fit = lmfit(**self.__fitargs)
+            p0 = self.__estimate_p0(x, y)
+        self.__fit = lmfit(func, x, y, p0, plot=plot, verbose=verbose)
        
     def plot(self):
         fig, axes = plt.subplots(figsize=(8,5), dpi=100)
         axes.set_title(r'$\mathrm{%s}$' % self.__filename)
-        x = self.__fitargs['xdata']
-        y = self.__fitargs['ydata']
+        x, y = self.__fitargs['data']
         pltset = self._plotsettings
         xlim = ( 0.928*x[0], 1.02*x[-1] )
         if xlim[0] > xlim[1]:
@@ -649,7 +604,7 @@ class TOFSpectrum(object):
         self.axes = axes
         self.savefig = self.fig.savefig
         plt.show(fig)
-
+  
 class MultiTOF(object):
     """
     ...
@@ -782,3 +737,8 @@ if __name__ == '__main__':
 
     # Rempi TOA
     TestTOA = RempiTOA('testdata/1208005.dat')
+
+    # Tagging TOF
+    TestTOF = TaggingTOF(testsetup2, 'testdata/1308033.dat', 606, verbose=True,
+                         mode='Flux_vs_E')
+    print TestTOF.Mean, TestTOF.StdDev, TestTOF.Moments
