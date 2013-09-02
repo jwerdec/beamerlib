@@ -440,6 +440,7 @@ class TaggingTOF(object):
         self.__v = (v, Flux[1])
         self.__E = (E, Flux[2])
         self.set_mode(mode)
+        self.__fit = None
         self.__moments = None
         if fit:
             self.fit(verbose=verbose)
@@ -501,8 +502,10 @@ class TaggingTOF(object):
         
     def __get_moments(self):
         if self.__moments == None:
-            zeroth, first, second = helper.Moments(self.__fit, n=[0,1,2], limits=(0, np.inf))
-            self.__moments = ([zeroth[0], first[0], second[0]], first[0]/zeroth[0], second[0]/zeroth[0])
+            zeroth, first, second = helper.Moments(self.__fit, n=[0,1,2],
+                                                   limits=(0, np.inf))
+            self.__moments = ([zeroth[0], first[0], second[0]],
+                              first[0]/zeroth[0], second[0]/zeroth[0])
         return self.__moments
     
     def __call__(self, x):
@@ -552,6 +555,15 @@ class TaggingTOF(object):
 
     def get_fitfunc(self):
         return self.__fitargs['func']
+
+    def get_values(self, limits=()):
+        """
+        Returns 2d array with the x and y data in the current mode 
+        Limits: Tuple of x values definding a range of values that are returned
+        """
+        x, y = self.__fitargs['data']
+        tab = np.array([x, y])
+        return helper.extract_from_Table(tab, limits=limits)
         
     def set_mode(self, mode):
         pltset = {
@@ -634,8 +646,9 @@ class MultiTOF(object):
         else:
             self.__IRDelays = [IRDelays for _ in self.__nrange]
         self.__mode = mode
-        self.__TOFData = [TOFSpectrum(self.__Setups[i], self.__filenames[i],
-                                      self.__IRDelays[i], mode=mode) for i
+        self.__TOFData = [TaggingTOF(self.__Setups[i], self.__filenames[i],
+                                      self.__IRDelays[i], mode=mode,
+                                     plot=False) for i
                           in self.__nrange]    
         if plot:
             self.plot()
@@ -676,16 +689,11 @@ class MultiTOF(object):
         ax.xaxis.set_ticks([])
         fig.subplots_adjust(wspace=0, hspace=0)
         axes = [item for sublist in axes for item in sublist]
-        
-        if self.__mode == 'Flux_vs_TOF':
-            x = [item.TOF for item in self.__TOFData]
-            y = [item.Flux for item in self.__TOFData]                 
-        elif self.__mode == 'Flux_vs_v':
-            x = [item.v for item in self.__TOFData]
-            y = [item.Flux for item in self.__TOFData]
-        elif self.__mode == 'Flux_vs_E':
-            x = [item.E for item in self.__TOFData]
-            y = [item.Flux for item in self.__TOFData]
+
+        x = [None for _ in self.__TOFData]
+        y = [None for _ in self.__TOFData]
+        for i in range(len(x)):
+            x[i], y[i] = self.__TOFData[i].get_values()
         if self.__xlim == ():
             xmax = max(x[0])
             xmin = min(x[0])
