@@ -19,17 +19,21 @@ from numpy import arange, cos, radians, max, min, array, linspace
 from sys import stderr
 
 class AngularDistribution(object):
-    def __init__(self, REMPISetups, Integrals, fit=True, plot=True,
+    def __init__(self, REMPISetups, Integrals, ICE=None, fit=True, plot=True,
 		 Normalized=True, exclude=[]):
 	if len(REMPISetups) != len(Integrals):
 	    stderr.write('Error: Dimensions of Setups and ' + 
 			     'Integrals do not match!')
             return
+        self.__ICE = ICE
 	self.__Setups = REMPISetups
 	self.__Normalized = Normalized
 	self.__Angles = array([setup.Angle for setup in self.__Setups])
-	self.__Integrals = array(Integrals)
 	self.__excluded = []
+        if ICE != None:
+            for i in range(len(Integrals)):
+                Integrals[i] = Integrals[i]/ICE(self.__Setups[i].ZR)
+        self.__Integrals = array(Integrals)   
 	self.__NormIntegrals = self.__norm(Integrals)
 	self.__fit = None
 	if fit:
@@ -131,6 +135,11 @@ class REMPISetup(object):
             self.visualize()
     
     # PUBLIC ATTRIBUTES
+
+    @property
+    def ZR(self):
+        return self.__Pos['Center ZRM'] - self.__Pos['ZRM']
+
     @property
     def Positions(self):
         return self.__Pos
