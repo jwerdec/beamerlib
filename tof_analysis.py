@@ -502,8 +502,9 @@ class TaggingTOF(object):
         
     def __get_moments(self):
         if self.__moments == None:
+            x, _ = self.__fitargs['data']
             zeroth, first, second = helper.Moments(self.__fit, n=[0,1,2],
-                                                   limits=(0, np.inf))
+                                                   limits=(0, x[-1]*10))
             self.__moments = ([zeroth[0], first[0], second[0]],
                               first[0]/zeroth[0], second[0]/zeroth[0])
         return self.__moments
