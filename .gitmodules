@@ -1,0 +1,3 @@
+[submodule "lmfit"]
+	path = lmfit
+	url = https://github.com/jwerdec/lmfit.git
