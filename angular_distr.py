@@ -79,8 +79,8 @@ class AngularDistribution(object):
             label = r'$%1.2f\ \cos^{%2.1f}(\theta-%1.2f^\circ)$' %\
                 (self.Fit.P['A'], self.Fit.P['m'], self.Fit.P['theta0'])
             polar_ax.plot(theta, self.Fit(theta), 'b-', label=label)
-            label = r'$\cos(\theta - %.2f)$' % self.Fit.P['theta0'] 
-            polar_ax.plot(theta, cos(radians(theta-self.Fit.P['theta0'])),
+            label = r'$\cos(\theta)$' % self.Fit.P['theta0'] 
+            polar_ax.plot(theta, cos(radians(theta)),
                           'k--', label=label)
 	if len(self.__excluded) > 0:
 	    polar_ax.plot(self.__Angles[self.__excluded],
