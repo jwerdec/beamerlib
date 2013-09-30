@@ -158,6 +158,7 @@ class REMPISetup(object):
     
     def calc(self, Pos):
         mmperdiv = 2
+        mmperManipulatorDiv = 0.5
         REMPIx = Pos['REMPI']
         Center = Pos['Center ZRM']
         Surf = Pos['Surface Y'] 
@@ -165,7 +166,7 @@ class REMPISetup(object):
         self.__Pos['REMPI'] = (REMPIx, REMPIy)
         SurfRef = self.__SurfacePosMeas.Y0
         IRRef = self.__SurfacePosMeas.IRPos
-        SurfPos = (SurfRef - Surf) / mmperdiv + IRRef
+        SurfPos = (SurfRef - Surf)*mmperManipulatorDiv / mmperdiv + IRRef
         self.__Surface = SurfPos
         self.__Pos['Surface Beamtool'] = SurfPos
         l = sqrt((SurfPos - REMPIx)**2 + REMPIy**2)*mmperdiv
