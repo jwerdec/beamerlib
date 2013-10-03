@@ -497,7 +497,7 @@ class TaggingTOF(object):
         while y[i] > F0/2:
             i -= 1
         left = i
-        alpha = x[right] - x[left]
+        alpha = x[left] - x[right]
         return {'F0':F0, 'x0':x0, 'alpha':alpha}
         
     def __get_moments(self):
@@ -672,10 +672,12 @@ class MultiTOF(object):
     def Fig(self):
         return self.__fig
         
-    def plot(self, xlim=()):
+    def plot(self, xlim=(), Descriptions=[]):
         """
         ...
         """
+	if Descriptions != []:
+	    self.__descriptions = Descriptions
         if xlim!=():
             self.__xlim = xlim
         numrows = (self.__n + 1)//2
