@@ -133,7 +133,7 @@ class TaggingSetup(object):
             Surf = Pos['Surface Y']
             SurfRef = self.__SurfacePosMeas.Y0
             IRRef = self.__SurfacePosMeas.IRPos
-            SurfPos = (SurfRef - Surf) / mmperdiv + IRRef
+            SurfPos = (SurfRef - Surf)* 0.5 / mmperdiv + IRRef
             self.__Surface = SurfPos
             self.__Pos['Surface Beamtool'] = SurfPos
             distances = {'IR-S': 0, 'MPI-S':0, 'IR-S-MPI': 0}
