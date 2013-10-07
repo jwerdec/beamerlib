@@ -1,6 +1,6 @@
 from __future__ import division 
 from lmfit import LMFit
-from helper import SemiPolarPlot
+from polar_plot import SemiPolarPlot
 from numpy import arange, cos, radians, max, min, array, linspace
 from sys import stderr
 
@@ -266,7 +266,6 @@ if __name__ == '__main__':
     from tof_analysis import SurfacePosMeas
     angles = linspace(-45, 45, 17) 
     signal = -cos(radians(angles+8))**12
-    print signal
     pos = arange(1,9.5,0.5)
     surfpos = arange(30,33,0.2)
     power = [0.3, 0.3, 0.285, 0.275, 0.255, 0.24, 0.23, 0.2, .179, .155,
