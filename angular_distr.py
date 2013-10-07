@@ -1,19 +1,5 @@
-"""
-Requirements:
-    Python v2.7 or later (not compatible with Python 3)
-    numpy, matplotlib, scipy
-Tested with:
-    Linux Mint 14 64bit
-    python 2.7.3
-    numpy 1.6.2
-    matplotlib 1.2.1
-    scipy 0.10.1
-
-Version History:
-"""
-
 from __future__ import division 
-from lmfit import *
+from lmfit import LMFit
 from helper import SemiPolarPlot
 from numpy import arange, cos, radians, max, min, array, linspace
 from sys import stderr
@@ -59,7 +45,7 @@ class AngularDistribution(object):
         idx = list(idx.difference(ex))
         Integrals = Integrals[idx]
         Angles = self.__Angles[idx]
-        self.__fit = lmfit(func, Angles, Integrals, p0, verbose=verbose, 
+        self.__fit = LMFit(func, Angles, Integrals, p0, verbose=verbose, 
                            plot=plot)
 
     def plot(self):
