@@ -133,7 +133,7 @@ class TaggingSetup(object):
             Surf = Pos['Surface Y']
             SurfRef = self.__SurfacePosMeas.Y0
             IRRef = self.__SurfacePosMeas.IRPos
-            SurfPos = (SurfRef - Surf) / mmperdiv + IRRef
+            SurfPos = (SurfRef - Surf)* 0.5 / mmperdiv + IRRef
             self.__Surface = SurfPos
             self.__Pos['Surface Beamtool'] = SurfPos
             distances = {'IR-S': 0, 'MPI-S':0, 'IR-S-MPI': 0}
@@ -472,7 +472,7 @@ class TaggingTOF(object):
         return TOFFlux, vFlux, EFlux
         
     def __FluxTOFfit(self, x, F0, alpha, x0):
-        return F0 * (self.__l/x)**4 * exp(- (self.__l/alpha)**2 *
+        return F0 * self.__l**4/x**4 * exp(- (self.__l/alpha)**2 *
                                             (1/x - 1/x0)**2)
     
     def __FluxVfit(self, x, F0, alpha, x0):
@@ -497,7 +497,7 @@ class TaggingTOF(object):
         while y[i] > F0/2:
             i -= 1
         left = i
-        alpha = x[right] - x[left]
+        alpha = x[left] - x[right]
         return {'F0':F0, 'x0':x0, 'alpha':alpha}
         
     def __get_moments(self):
@@ -672,10 +672,12 @@ class MultiTOF(object):
     def Fig(self):
         return self.__fig
         
-    def plot(self, xlim=()):
+    def plot(self, xlim=(), Descriptions=[]):
         """
         ...
         """
+	if Descriptions != []:
+	    self.__descriptions = Descriptions
         if xlim!=():
             self.__xlim = xlim
         numrows = (self.__n + 1)//2
