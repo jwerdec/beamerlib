@@ -1,17 +1,3 @@
-"""
-Requirements:
-    Python v2.7 or later (not compatible with Python 3)
-    numpy, matplotlib, scipy
-Tested with:
-    Linux Mint 14 64bit
-    python 2.7.3
-    numpy 1.6.2
-    matplotlib 1.2.1
-    scipy 0.11.1
-
-Version History:
-"""
-
 import numpy as np
 import matplotlib.pylab as plt
 import scipy.signal as sig
