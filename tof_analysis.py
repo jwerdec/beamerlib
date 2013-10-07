@@ -1,24 +1,10 @@
-"""
-Requirements:
-    Python v2.7 or later (not compatible with Python 3)
-    numpy, matplotlib, scipy
-Tested with:
-    Linux Mint 14 Cinnamon 64bit
-    python 2.7.3
-    numpy 1.6.2
-    matplotlib 1.2.1
-    scipy 0.10.1
-
-Version History:
-"""
-
 from __future__ import division
 from matplotlib.pyplot import plot
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import sqrt, cos, sin, log, exp, linspace
 from matplotlib.ticker import MultipleLocator, NullFormatter
-from lmfit import lmfit
+from lmfit import LMFit
 from matplotlib.path import Path
 import matplotlib.patches as patches 
 import matplotlib.gridspec as gs
@@ -57,7 +43,7 @@ class SurfacePosMeas(object):
     def fit(self, p0={}):
         if p0=={}:
             p0={'a': 1, 'Imax': 50, 'y0': self.Y[len(self.Y)-1]}
-        fit = lmfit(self.__func, self.Y, self.Irel, p0=p0, verbose=False,
+        fit = LMFit(self.__func, self.Y, self.Irel, p0=p0, verbose=False,
                     plot=False)
         self.fit = fit
         self.__Y0 = fit.P['y0']
@@ -118,6 +104,7 @@ class TaggingSetup(object):
     
     def calc(self, Pos):
         mmperdiv = 2
+        mmperYs = 0.5
         IRx, IRy = Pos['IR']
         REMPIx = Pos['REMPI']
         Center = Pos['Center ZRM']
@@ -133,7 +120,7 @@ class TaggingSetup(object):
             Surf = Pos['Surface Y']
             SurfRef = self.__SurfacePosMeas.Y0
             IRRef = self.__SurfacePosMeas.IRPos
-            SurfPos = (SurfRef - Surf)* 0.5 / mmperdiv + IRRef
+            SurfPos = (SurfRef - Surf) * mmperYs / mmperdiv + IRRef
             self.__Surface = SurfPos
             self.__Pos['Surface Beamtool'] = SurfPos
             distances = {'IR-S': 0, 'MPI-S':0, 'IR-S-MPI': 0}
@@ -497,7 +484,9 @@ class TaggingTOF(object):
         while y[i] > F0/2:
             i -= 1
         left = i
-        alpha = x[left] - x[right]
+        alpha = x[right] - x[left]
+        if self.__mode == 'Flux_vs_E':
+            F0 = y[maxpos]*self.__mass**2/x[maxpos]
         return {'F0':F0, 'x0':x0, 'alpha':alpha}
         
     def __get_moments(self):
@@ -587,6 +576,7 @@ class TaggingTOF(object):
         else:
             raise Exception('Error: Mode %s unknown!' % mode)
             return None
+        self.__mode = mode
         self._plotsettings = pltset
 
     def fit(self, func=None, p0={}, verbose=False, plot=False):
@@ -596,7 +586,7 @@ class TaggingTOF(object):
         x, y = self.__fitargs['data']
         if p0 == {}:
             p0 = self.__estimate_p0(x, y)
-        self.__fit = lmfit(func, x, y, p0, plot=plot, verbose=verbose)
+        self.__fit = LMFit(func, x, y, p0, plot=plot, verbose=verbose)
        
     def plot(self):
         fig, axes = plt.subplots(figsize=(8,5), dpi=100)
