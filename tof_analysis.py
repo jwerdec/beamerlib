@@ -472,7 +472,7 @@ class TaggingTOF(object):
         return TOFFlux, vFlux, EFlux
         
     def __FluxTOFfit(self, x, F0, alpha, x0):
-        return F0 * (self.__l/x)**4 * exp(- (self.__l/alpha)**2 *
+        return F0 * self.__l**4/x**4 * exp(- (self.__l/alpha)**2 *
                                             (1/x - 1/x0)**2)
     
     def __FluxVfit(self, x, F0, alpha, x0):
