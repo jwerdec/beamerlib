@@ -79,8 +79,8 @@ class AngularDistribution(object):
             label = r'$%1.2f\ \cos^{%2.1f}(\theta-%1.2f^\circ)$' %\
                 (self.Fit.P['A'], self.Fit.P['m'], self.Fit.P['theta0'])
             polar_ax.plot(theta, self.Fit(theta), 'b-', label=label)
-            label = r'$\cos(\theta - %.2f)$' % self.Fit.P['theta0'] 
-            polar_ax.plot(theta, cos(radians(theta-self.Fit.P['theta0'])),
+            label = r'$\cos(\theta)$' % self.Fit.P['theta0'] 
+            polar_ax.plot(theta, cos(radians(theta)),
                           'k--', label=label)
 	if len(self.__excluded) > 0:
 	    polar_ax.plot(self.__Angles[self.__excluded],
@@ -158,6 +158,7 @@ class REMPISetup(object):
     
     def calc(self, Pos):
         mmperdiv = 2
+        mmperManipulatorDiv = 0.5
         REMPIx = Pos['REMPI']
         Center = Pos['Center ZRM']
         Surf = Pos['Surface Y'] 
@@ -165,7 +166,7 @@ class REMPISetup(object):
         self.__Pos['REMPI'] = (REMPIx, REMPIy)
         SurfRef = self.__SurfacePosMeas.Y0
         IRRef = self.__SurfacePosMeas.IRPos
-        SurfPos = (SurfRef - Surf) / mmperdiv + IRRef
+        SurfPos = (SurfRef - Surf)*mmperManipulatorDiv / mmperdiv + IRRef
         self.__Surface = SurfPos
         self.__Pos['Surface Beamtool'] = SurfPos
         l = sqrt((SurfPos - REMPIx)**2 + REMPIy**2)*mmperdiv
