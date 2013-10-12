@@ -2,10 +2,10 @@ from __future__ import division
 from lmfit import LMFit
 from polar_plot import SemiPolarPlot
 from numpy import arange, cos, radians, max, min, array, linspace
-from sys import stderr
 from helper import normalize
 from geometry import REMPISetup
 import matplotlib.pyplot as plt
+from scipy.integrate import quad
 
 class AngularDistribution(object):
     def __init__(self, Setup, Integrals, Z=arange(1,9.1, 0.5),
@@ -54,7 +54,8 @@ class AngularDistribution(object):
         if self.__fit is not None:
             label = r'$%1.2f\ \cos^{%2.1f}(\theta-%1.2f^\circ)$' %\
                 (self.Fit.P['A'], self.Fit.P['m'], self.Fit.P['theta0'])
-            polar_ax.plot(theta, 0.9*self.Fit(theta), 'b-', label=label)
+            polar_ax.plot(theta, 0.9*self.Fit(theta)/self.Fit.P['A'],
+                          'b-', label=label)
             label = r'$\cos(\theta)$' % self.Fit.P['theta0'] 
             polar_ax.plot(theta, cos(radians(theta)),
                           'k--', label=label)
@@ -70,13 +71,12 @@ class AngularDistribution(object):
 	self.savefig = fig.savefig
 	plt.show(fig)
 
+    def __call__(self, theta):
+        return self.Fit(theta)
+
     @property
     def Angles(self):
 	return self.__Angles
-
-    @property
-    def Setups(self):
-	return self.__Setups
 
     @property
     def Integrals(self):
@@ -85,6 +85,16 @@ class AngularDistribution(object):
     @property
     def Fit(self):
 	return self.__fit
+
+    @property
+    def Area(self):
+        b = self.Fit.P['theta0']
+        return quad(self, -90+b, 90+b)[0]
+
+    @property
+    def FitParams(self):
+        return self.Fit.P['m'], self.Fit.P['theta0']
+
 
 # TESTCODE   
 if __name__ == '__main__':
