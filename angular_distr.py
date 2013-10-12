@@ -15,11 +15,13 @@ Version History:
 from __future__ import division 
 from lmfit import *
 from helper import SemiPolarPlot
-from numpy import arange, cos, radians, max, min, array, linspace
+from numpy import arange, cos, radians, max, min, array, linspace, pi
 from sys import stderr
+from scipy.integrate import quad
 
 class AngularDistribution(object):
-    def __init__(self, REMPISetups, Integrals, ICE=None, fit=True, plot=True,
+    def __init__(self, REMPISetups, Integrals, ICE=None,
+                 fit=True, plot=True,
 		 Normalized=True, exclude=[]):
 	if len(REMPISetups) != len(Integrals):
 	    stderr.write('Error: Dimensions of Setups and ' + 
@@ -95,7 +97,19 @@ class AngularDistribution(object):
 	plt.show(fig)
 
     def __norm(self, x):
-	    return x/max(x)
+        return x/max(x)
+
+    def __call__(self, theta):
+        return self.__fit(theta)
+
+    @property
+    def Integral(self):
+        b = self.Fit.P['theta0']
+        return quad(self, -90+b, 90+b)[0]
+
+    @property
+    def FitParams(self):
+        return self.Fit.P['m'], self.Fit.P['theta0']
 
     @property
     def Angles(self):
@@ -126,7 +140,7 @@ import matplotlib.gridspec as gs
 class REMPISetup(object):
     def __init__(self, SurfacePosMeas,
 		 Positions={'REMPI': 0, 'Center ZRM': 5.1, 'ZRM': 3.5,
-			    'Surface Y': None},
+			    'ZRM Beam Offset': 4.6, 'Surface Y': None},
 		 visualize=False):
         self.__SurfacePosMeas = SurfacePosMeas
         self.__Pos = Positions
@@ -159,18 +173,19 @@ class REMPISetup(object):
     def calc(self, Pos):
         mmperdiv = 2
         mmperManipulatorDiv = 0.5
-        REMPIx = Pos['REMPI']
+        REMPIx = Pos['REMPI']*mmperdiv
         Center = Pos['Center ZRM']
         Surf = Pos['Surface Y'] 
-        REMPIy = (Center - Pos['ZRM'])*2.54/mmperdiv
+        REMPIy = (Center - Pos['ZRM'])*2.54
         self.__Pos['REMPI'] = (REMPIx, REMPIy)
         SurfRef = self.__SurfacePosMeas.Y0
         IRRef = self.__SurfacePosMeas.IRPos
-        SurfPos = (SurfRef - Surf)*mmperManipulatorDiv / mmperdiv + IRRef
+        SurfPos = (SurfRef - Surf)*mmperManipulatorDiv + IRRef*mmperdiv
         self.__Surface = SurfPos
         self.__Pos['Surface Beamtool'] = SurfPos
-        l = sqrt((SurfPos - REMPIx)**2 + REMPIy**2)*mmperdiv
-        angle = degrees(arctan(REMPIy /(SurfPos - REMPIx)))
+        l = sqrt((SurfPos - REMPIx)**2 + REMPIy**2)
+        angle = degrees(arctan((REMPIy - Pos['ZRM Beam Offset']*2.54)/
+                                (SurfPos - REMPIx)))
         self.__REMPIx = REMPIx
         self.__REMPIy = REMPIy
         return l, angle
@@ -247,10 +262,10 @@ class REMPISetup(object):
         width = 0.2
         height = 2
         verts = [
-             (self.__Surface, -height/2),      # right bottom
-             (self.__Surface, height/2),       # right top
-             (self.__Surface-width, height/2), # left top
-             (self.__Surface-width, -height/2),# left bottom
+             (self.__Surface/2, -height/2),      # right bottom
+             (self.__Surface/2, height/2),       # right top
+             (self.__Surface/2-width, height/2), # left top
+             (self.__Surface/2-width, -height/2),# left bottom
              (0., 0.) #ignored
              ]
         codes = [
@@ -263,10 +278,10 @@ class REMPISetup(object):
         path = Path(verts, codes)
         patch = patches.PathPatch(path, facecolor='gold', lw=0)
         ax1.add_patch(patch)
-        ax1.plot(self.__REMPIx, self.__REMPIy, 'bo', markersize=12)
+        ax1.plot(self.__REMPIx/2, self.__REMPIy/2, 'bo', markersize=12)
         string = r"""
         Positions:
-$(x,y)_\mathrm{UV} =\, (%2.2f,\ %2.2f)\ \mathrm{div}$
+$(x,y)_\mathrm{UV} =\, (%2.2f,\ %2.2f)\ \mathrm{mm}$
 $x_\mathrm{S} =\, %2.2f \ \mathrm{mm}$
 
 Angle:
