@@ -120,6 +120,10 @@ class REMPISetup(object):
         return self.calc_angle(Z)
 
     @property
+    def Z0(self):
+        return self.__Pos['Z0']
+
+    @property
     def Positions(self):
         return self.__Pos
         
