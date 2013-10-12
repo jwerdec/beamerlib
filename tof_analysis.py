@@ -14,59 +14,6 @@ from scipy.integrate import quad
 from scipy.optimize import leastsq
 import helper
 
-class SurfacePosMeas(object):
-    
-    def __init__(self, Y=[], Power=[], IRPos=7):
-        """
-        ...
-        """
-        self.__Power = np.array(Power)
-        self.Irel = self.__Power/self.__Power.max()*100
-        self.Y = np.array(Y)
-        self.__IRPos = IRPos
-        self.__xlim = (self.Y.min()-0.01*self.Y.min(),
-                       self.Y.max()+0.01*self.Y.max())
-        self.__ylim = (0, self.Irel.max()+0.05*self.Irel.max())
-        self.fit()
-        
-    def __func(self, y, a, Imax, y0):
-        return Imax * erfc(a*(y-y0))
-    
-    @property
-    def Y0(self):
-        return self.__Y0
-        
-    @property
-    def IRPos(self):
-        return self.__IRPos
-    
-    def fit(self, p0={}):
-        if p0=={}:
-            p0={'a': 1, 'Imax': 50, 'y0': self.Y[len(self.Y)-1]}
-        fit = LMFit(self.__func, self.Y, self.Irel, p0=p0, verbose=False,
-                    plot=False)
-        self.fit = fit
-        self.__Y0 = fit.P['y0']
-        self.__a = fit.P['a']
-        x = linspace(self.__xlim[0], self.__xlim[1], 100)
-        fig, axes = plt.subplots(figsize=(8,5), dpi=100)
-        axes.set_title(r'IR Power vs. Surface Position')
-        axes.plot(self.Y, self.Irel, 'o', color='w')
-        axes.plot(x, fit(x), 'b-',
-                  label=(r'$\mathrm{erfc}[ %.2f \cdot \left(Y_\mathrm{S} - %.2f \right)]$') % (self.__a, self.__Y0)
-                  )
-        axes.set_ylabel(r'$I/I_\mathrm{max}\ [\%]$')
-        axes.set_xlim(self.__xlim)
-        axes.set_ylim(self.__ylim)
-        axes.xaxis.set_major_locator(MultipleLocator(0.5))
-        axes.xaxis.set_minor_locator(MultipleLocator(0.1))
-        axes.yaxis.set_major_locator(MultipleLocator(10))
-        axes.grid(which='minor', axis='x')
-        axes.grid(which='major', axis='x')
-        axes.grid(which='major', axis='y')
-        axes.legend(loc='best')
-        plt.show(fig)
-
 class TaggingSetup(object):
     """
     ...

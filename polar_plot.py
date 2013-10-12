@@ -1,8 +1,7 @@
 import  mpl_toolkits.axisartist.angle_helper as angle_helper
 from matplotlib.projections import PolarAxes
 from matplotlib.transforms import Affine2D
-from mpl_toolkits.axisartist import SubplotHost
-from mpl_toolkits.axisartist import GridHelperCurveLinear
+from mpl_toolkits.axisartist import SubplotHost, GridHelperCurveLinear
 from mpl_toolkits.axisartist.grid_finder import MaxNLocator, FixedLocator
 from numpy import pi
 
