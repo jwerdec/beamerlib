@@ -21,13 +21,13 @@ class Gas(object):
     def Cp(self):
         return self.__Cp
 
-CO = Gas(r'CO', 28, 7/2)
-H2 = Gas(r'H$_2$', 2, 7/2)
-NO = Gas(r'NO', 30, 7/2)
-Ar = Gas(r'Ar', 40, 5/2)
-Ne = Gas(r'Ne', 20, 5/2)
-He = Gas(r'He', 4, 5/2)
-N2 = Gas(r'N$_2$', 28, 7/2)
+CO = Gas(r'CO', 28, 7/2*const.R)
+H2 = Gas(r'H$_2$', 2.016, 28.836)
+NO = Gas(r'NO', 30, 7/2*const.R)
+Ar = Gas(r'Ar', 40, 20.786)
+Ne = Gas(r'Ne', 20.179, 20.786)
+He = Gas(r'He', 4, 20.786)
+N2 = Gas(r'N$_2$', 28.01, 29.124)
 HCl = Gas(r'HCl', 36, 7/2)
 
 def BeamEnergiesPlot(T, Gas, Carriers=[H2, He, Ne]):
@@ -65,8 +65,8 @@ class SeededBeam(object):
         
     def calc(self, x):
         T = self.__T
-        Cp = self.__Gas.Cp*const.R
-        CpCarrier = self.__Carrier.Cp*const.R
+        Cp = self.__Gas.Cp
+        CpCarrier = self.__Carrier.Cp
         M = self.__Gas.Mass
         MCarrier = self.__Carrier.Mass
         v2 = 2*T*(x*Cp + (1-x)*CpCarrier)/((1-x)*MCarrier + x*M)*1000
