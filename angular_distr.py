@@ -1,7 +1,7 @@
 from __future__ import division 
 from lmfit import LMFit
 from polar_plot import SemiPolarPlot
-from numpy import arange, cos, radians, max, min, array, linspace
+from numpy import arange, cos, radians, max, min, array, linspace, savetxt
 from helper import normalize
 from geometry import REMPISetup
 import matplotlib.pyplot as plt
@@ -69,7 +69,16 @@ class AngularDistribution(object):
 	self.axis1 = ax1
 	self.polar_axis = polar_ax
 	self.savefig = fig.savefig
+        self.__y = y
 	plt.show(fig)
+
+    def savetxt(self, filenameprefix):
+        b = self.Fit.P['theta0']
+        savetxt(filenameprefix + '_raw.dat',
+                array([self.__Angles, self.__y]).T)
+        savetxt(filenameprefix + '_fit.dat',
+                array([linspace(-90+b, 90-b, 300),
+                       0.9*self(linspace(-90+b, 90-b, 300))/self.Fit.P['A']]).T)
 
     def __call__(self, theta):
         return self.Fit(theta)
