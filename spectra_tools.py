@@ -20,6 +20,6 @@ def comb(axes, JPos, modulo, y=0.9, height=0.03, overhang=True, linewidth=0.5,
                 axes.axvline(x=Pos, ymin=y-height, ymax=y+height+0.04,
                              color='k', linewidth=linewidth)
                 textoffset = 0.0025*xlen
-            axes.text(Pos+textoffset, h+0.01*ydiv, r'%d' %j, fontsize=10)
+            axes.text(Pos+textoffset, h+0.01*ydiv, r'%d' %j)
     axes.axhline(h, (hline_left-left)/xlen, (hline_right-left)/xlen, color='k',
                  linewidth=linewidth)

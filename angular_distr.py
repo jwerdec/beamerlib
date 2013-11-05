@@ -18,6 +18,8 @@ class AngularDistribution(object):
             for i in range(len(Integrals)):
                 Integrals[i] = Integrals[i]/ICE(Setup.Z0 - Z[i])
         self.__Integrals = array(Integrals)   
+	if Normalized:
+	    self.__Integrals /= self.__Integrals.max()
 	self.__fit = None
 	if fit:
 	    self.fit(verbose=False, plot=False, exclude=exclude)

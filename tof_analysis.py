@@ -366,13 +366,15 @@ class TaggingTOF(object):
         self.__numbasecorr = numbasecorr
         self.__RawData = RawTOFData(filename)
         TOF, Signal = self.__treat_data(self.__RawData)
+	self.__Signal = Signal
         v, E = self.__invert(TOF)
         Flux = self.__density_to_flux(Signal, v)
         if Normalize:
             Flux = [helper.normalize(flux, 5) for flux in Flux]
+	self.__TOFDen = (TOF, self.__Signal)
         self.__TOF = (TOF, Flux[0])
         self.__v = (v, Flux[1])
-        self.__E = (E, Flux[2])
+        self.__E = (E, self.__Signal)
         self.set_mode(mode)
         self.__fit = None
         self.__moments = None
@@ -404,15 +406,18 @@ class TaggingTOF(object):
         vFlux = Signal*self.__l/v
         EFlux = vFlux/(v*self.__mass)
         return TOFFlux, vFlux, EFlux
+
+    def __DenTOFfit(self, x, F0, alpha, x0):
+	return F0 * self.__l**3/x**3 *exp(- (self.__l/alpha)**2 * (1/x - 1/x0)**2)
         
     def __FluxTOFfit(self, x, F0, alpha, x0):
-        return F0 * self.__l**4/x**4 * exp(- (self.__l/alpha)**2 *
+        return F0 * self.__l**4/x**5 * exp(- (self.__l/alpha)**2 *
                                             (1/x - 1/x0)**2)
     
     def __FluxVfit(self, x, F0, alpha, x0):
         return F0 * x**3 * exp(-( (x-x0) /alpha)**2)
     
-    def __FluxEfit(self, x, F0, alpha, x0):
+    def __DenEfit(self, x, F0, alpha, x0):
         return F0 * x/self.__mass**2  * exp(- 2/(self.__mass*alpha**2) * 
                                               (sqrt(x)- sqrt(x0))**2 )
     
@@ -457,6 +462,10 @@ class TaggingTOF(object):
     @property
     def RawData(self):
         return self.__RawData
+
+    @property
+    def Signal(self):
+	return self.__Signal
 
     @property
     def TOF(self):
@@ -512,12 +521,15 @@ class TaggingTOF(object):
         if mode == 'Flux_vs_TOF':
             self.__fitargs = {'func': self.__FluxTOFfit, 'data': self.__TOF}
             pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
+	elif mode == 'Density_vs_TOF':
+	    self.__fitargs = {'func': self.__DenTOFfit, 'data': self.__TOFDen}
+            pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Density}$'
         elif mode == 'Flux_vs_v':
             self.__fitargs = {'func': self.__FluxVfit, 'data': self.__v}
             pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
             pltset['xlabel'] = r'$v \, / \, \mathrm{m}\, \mathrm{s}^{-1}$'
-        elif mode == 'Flux_vs_E':
-            self.__fitargs = {'func': self.__FluxEfit, 'data': self.__E}
+        elif mode == 'Density_vs_E':
+            self.__fitargs = {'func': self.__DenEfit, 'data': self.__E}
             pltset['ylabel'] = pltset['ylabel'] + r' $\mathrm{Flux}$'
             pltset['xlabel'] = r'$E \, / \, \mathrm{eV}$'
         else:
