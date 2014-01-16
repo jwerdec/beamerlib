@@ -83,7 +83,7 @@ class AngularDistribution(object):
                        0.9*self(linspace(-90+b, 90-b, 300))/self.Fit.P['A']]).T)
 
     def __call__(self, theta):
-        return self.Fit(theta)
+        return 0.9*self.Fit(theta)/self.__fit.P['A']
 
     @property
     def Angles(self):
@@ -91,7 +91,7 @@ class AngularDistribution(object):
 
     @property
     def Integrals(self):
-	return self.__Integrals
+	return 0.9*self.__Integrals/self.__fit.P['A']
 
     @property
     def Fit(self):
